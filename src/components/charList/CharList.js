@@ -1,79 +1,63 @@
 import './charList.scss';
-import { Component } from 'react';
-import MarvelService from '../services/MarvelDBService';
+import { useEffect, useState } from 'react';
+import useMarvelService from '../services/MarvelDBService';
 import {ReactComponent as Spinner} from '../spinner/spinner.svg';
 
-class Char extends Component {
-    render () {
-        const {thumbnail, name, id} = this.props.char
-        const picStyles = thumbnail === "http://i.annihil.us/u/prod/marvel/i/mg/b/40/image_not_available.jpg" ? 
-                      {objectFit: "contain", alignItems: "start"} : {objectFit: "cover"}
+const Char = (props) =>  {
+    const {thumbnail, name, id} = props.char
+    const picStyles = thumbnail === "http://i.annihil.us/u/prod/marvel/i/mg/b/40/image_not_available.jpg" ? 
+                  {objectFit: "contain", alignItems: "start"} : {objectFit: "cover"}
 
-        return (
-            <li onClick={() => {this.props.onChoose(id)}} className="char__item">
-                <img src={thumbnail} style={picStyles} alt={name}/>
-                <div className="char__name">{name}</div>
-            </li>
-        )
-    }
+    return (
+        <li onClick={() => {props.onChoose(id)}} className="char__item">
+            <img src={thumbnail} style={picStyles} alt={name}/>
+            <div className="char__name">{name}</div>
+        </li>
+    )
 }
 
-class CharList extends Component {
-    state = {
-        chars: [],
-        loadedCount: 210,
-        loading: true
-    }
+const CharList = (props) => {
+    const [chars, setChars] = useState([])
+    const [loadedCount, setCount] = useState(210)
 
-    MarvelService = new MarvelService()
+    const {loading, getAllCharacters} = useMarvelService()
 
-    componentWillMount = () => {
-        this.fetchChars()
-    }
+    useEffect(() => {
+        fetchChars()
+        useMarvelService.loading = true
+    }, [])
 
-    fetchChars = (offset = 210, limit = 36) => {
-        this.MarvelService
-        .getAllCharacters(offset, limit)
+    const fetchChars = (offset = 210, limit = 36) => {
+        getAllCharacters(offset, limit)
         .then(res => {
-            res.forEach((char, i) => {
-                this.setState(({chars}) => ({
-                    chars: [...chars, <Char onChoose={(id) => {this.props.onChoose(id)}} char={char} key={char.id}/>]
-                }))
+            res.forEach((char) => {
+                setChars(chars => [[...chars, <Char onChoose={(id) => {props.onChoose(id)}} char={char} key={char.id}/>]])
             })
         }).then(() => {
-            this.setState(({loadedCount}) => ({
-                loadedCount: loadedCount + limit,
-                loading: false
-            }));
+            setCount(loadedCount => loadedCount + limit)
         })
         
     }
 
-    loadMore = () => {
-        this.setState(({
-            loading: true
-        }))
-        this.fetchChars(this.state.loadedCount, 12)
+    const loadMore = () => {
+        fetchChars(loadedCount, 12)
     }
 
     
-
-    render () {
-        const {loading} = this.state
-        let characters = [...this.state.chars]
-        return (
-            <div className="char__list" >
-                <ul className="char__grid">
-                    {characters}
-                </ul>
-                {loading ? <Spinner/> : 
-                <button className="button button__main button__long">
-                    <div className="inner" onClick={this.loadMore}>load more</div>
-                </button>}
-                
-            </div>
-        )
-    }
+    
+    let characters = [...chars]
+    return (
+        <div className="char__list" >
+            <ul className="char__grid">
+                {characters}
+            </ul>
+            {loading ? <Spinner/> : 
+            <button className="button button__main button__long">
+                <div className="inner" onClick={loadMore}>load more</div>
+            </button>}
+            
+        </div>
+    )
 }
 
 export default CharList;
